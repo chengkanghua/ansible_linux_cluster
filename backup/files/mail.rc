@@ -1,0 +1,6 @@
+set from=343264992@163.com
+set smtp=smtp.163.com
+set smtp-auth-user=343264992@163.com
+set smtp-auth-password=MMaNQcY4HFTRJC2q
+set smtp-auth=login
+set ssl-verify=ignore

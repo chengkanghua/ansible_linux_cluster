@@ -1,0 +1,152 @@
+
+- group:
+    name: www
+    state: present
+    gid: 666
+
+- user:
+    name: www
+    state: present
+    group: www
+    shell: /sbin/nologin
+    create_home: false
+
+- name: copy nginx.repo
+  copy:
+    src: nginx.repo
+    dest: /etc/yum.repos.d/nginx.repo
+
+- name: 下载并安装 RPM 包
+  get_url:
+    url: "http://rpms.remirepo.net/enterprise/remi-release-7.rpm"
+    dest: "/tmp/remi-release-7.rpm"
+    mode: '0644'
+
+- name: 使用 yum 安装下载的 RPM 包
+  yum:
+    name: /tmp/remi-release-7.rpm
+    state: present
+
+- yum:
+    name:
+      - java
+      - yum-utils
+      - nginx
+      - php73-php-fpm
+      - php73-php-cli
+      - php73-php-bcmath
+      - php73-php-gd
+      - php73-php-json
+      - php73-php-mbstring
+      - php73-php-mcrypt
+      - php73-php-mysqlnd
+      - php73-php-opcache
+      - php73-php-pdo
+      - php73-php-pecl-crypto
+      - php73-php-pecl-mcrypt
+      - php73-php-pecl-geoip
+      - php73-php-recode
+      - php73-php-snmp
+      - php73-php-soap
+      - php73-php-xml
+
+- lineinfile:
+    path: "{{ item.path }}"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { path: "/etc/nginx/nginx.conf", regexp: "^user", line: "user www;"}
+    - { path: "/etc/opt/remi/php73/php-fpm.d/www.conf", regexp: "^user", line: "user = www"}
+    - { path: "/etc/opt/remi/php73/php-fpm.d/www.conf", regexp: "^group", line: "group = www"}
+    - { path: "/etc/opt/remi/php73/php.ini", regexp: ";cgi.fix_pathinfo=1", line: "cgi.fix_pathinfo=0"}
+
+- name: copy blog.conf
+  copy:
+    src: blog.conf
+    dest: /etc/nginx/conf.d/blog.conf
+
+- systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - php73-php-fpm
+    - nginx
+
+- name: create directory
+  file: 
+    path: /code
+    mode: '0755'
+
+- unarchive:
+    src: wordpress-4.9.4-zh_CN.tar.gz
+    dest: /code/
+    owner: www
+    group: www
+
+
+- name: download tomcat-9.0
+  unarchive:
+      src: https://mirror.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.95/bin/apache-tomcat-9.0.95.tar.gz
+      dest: /code
+      remote_src: yes
+
+- name: create a symbolic link 
+  file:
+    src: /code/apache-tomcat-9.0.95
+    dest: /code/tomcat
+    state: link
+
+- name: copy jpress-web-newest.war
+  copy:
+    src: jpress-web-newest.war
+    dest: /code/tomcat/webapps/jpress-web-newest.war
+#  notify: Restart Tomcat
+
+- name: restart Tomcat
+  command: '/code/tomcat/bin/shutdown.sh && /code/tomcat/bin/startup.sh'
+
+# - name: Wait for Tomcat to start
+#   wait_for:
+#     port: 8080
+#     delay: 60
+#     timeout: 300
+
+# - name: configure tomcat server.xml
+#   lineinfile:
+#     path: /code/tomcat/conf/server.xml
+#     line: '<Context path="" docBase="/code/tomcat/webapps/jpress-web-newest" debug="0" reloadable="false" crossContext="true"/> '
+#     insertafter: 'autoDeploy="true"'
+
+- name: Check if Tomcat is running
+  shell: 'pgrep -f tomcat |wc -l'
+  register: tomcat_status
+
+- name: Start Tomcat if not running
+  shell: 'nohup /code/tomcat/bin/startup.sh &'
+  when: tomcat_status.stdout | int != 0
+
+- name: create nfs directory
+  file:
+    path:
+      - /code/wordpress/wp-content/updates
+      - /code/tomcat/webapps/jpress-web-newest/attachment
+    state: directory
+    owner: www
+    group: www
+    mode: '0644'
+
+- name: Mount NFS share
+  mount:
+    path: "{{ item.path }}"
+    src: "{{ item.src }}"
+    fstype: nfs
+    opts: defaults,_netdev
+    state: mounted
+  with_items:
+    - { path: "/code/wordpress/wp-content/uploads", src: "172.16.1.31:/data/blog"}
+    - { path: "/code/tomcat/webapps/jpress-web-newest/attachment", src: "172.16.1.31:/data/jpress"}
+
+
+
+

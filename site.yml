@@ -1,0 +1,35 @@
+# - hosts: all
+#   remote_user: root
+#   roles:
+#     - base
+
+# - hosts: backup
+#   remote_user: root
+#   roles:
+#     - backup
+
+# - hosts: nfs
+#   remote_user: root
+#   roles:
+#     - nfs
+#     - sersync
+
+# - hosts: m01
+#   remote_user: root
+#   roles:
+#     - ntpd
+
+# - hosts: web
+#   remote_user: root
+#   roles: 
+#     - web
+
+# - hosts: lb
+#   remote_user: root
+#   roles:
+#     - lb
+
+- hosts: db
+  remote_user: root
+  roles:
+    - mysql

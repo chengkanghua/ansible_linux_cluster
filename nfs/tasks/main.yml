@@ -1,0 +1,46 @@
+- hostname:
+    name: nfs
+    use: systemd
+
+- group:
+    name: www
+    state: present
+    gid: 666
+    
+- user:
+    name: www
+    state: present
+    shell: /sbin/nologin
+    create_home: false
+    group: www
+
+- yum: 
+    name: nfs-utils
+    state: present
+
+- copy:
+    src: exports
+    dest: /etc/exports
+
+- file:
+    path: /data
+    state: directory
+    mode: '0755'
+
+- file:
+    path: "{{ item }}"
+    state: directory
+    owner: www
+    group: www
+    mode: '0755'
+  with_items:
+    - /data
+    - /data/blog
+    - /data/zh
+    - /data/jpress
+
+
+- systemd:
+    name: nfs-server
+    state: started
+    enabled: true

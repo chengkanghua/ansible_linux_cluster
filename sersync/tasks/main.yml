@@ -1,0 +1,29 @@
+
+- unarchive:
+    src: sersync2.5.4_64bit_binary_stable_final.tar.gz
+    dest: /usr/local/
+
+- name: create a symbolic link
+  file:
+    src: /usr/local/GNU-Linux-x86
+    dest: /usr/local/sersync
+    state: link
+
+- name: configure sersync
+  copy:
+    src: confxml.xml
+    dest: /usr/local/sersync/confxml.xml
+
+- name: create rsync.pass file
+  copy:
+    dest: /etc/rsync.pass
+    content: '1'
+    mode: "600"
+
+- name: 检查 sersync2 是否正在运行
+  shell: ps -ef | grep sersync[2] | wc -l
+  register: sersync_status
+
+- name: 启动 sersync2 服务
+  command: /usr/local/sersync/sersync2 -dro /usr/local/sersync/confxml.xml
+  when: sersync_status.stdout | int == 0

@@ -1,0 +1,118 @@
+- name: stop firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: stopped
+    enabled: false
+
+- name: Disable SELinux permanently
+  lineinfile:
+    path: /etc/selinux/config
+    state: present
+    regexp: '^SELINUX='
+    line: 'SELINUX=disabled'
+  notify: Reboot system
+
+- name: sshd_config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    regexp: "{{ item.reg }}"
+    line: "{{ item.line }}"
+  with_items:
+    - {reg: "^#GSSAPIAuthentication", line: "GSSAPIAuthentication no"}
+    - {reg: "^#UseDNS", line: "UseDNS no"}
+
+- name: find all .repo files except CentOS-Base.repo and epel.repo
+  find:
+    path: /etc/yum.repos.d/
+    patterns: "*.repo"
+    recurse: yes
+  register: repo_files
+
+- name: Delete all .repo files except CentOS-Base.repo and epel.repo
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ repo_files.files }}"
+  when: item.path != '/etc/yum.repos.d/CentOS-Base.repo' and item.path != '/etc/yum.repos.d/epel.repo'
+
+- name: Download Aliyun repo file u
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - url: https://mirrors.aliyun.com/repo/Centos-7.repo
+      dest: /etc/yum.repos.d/CentOS-Base.repo
+    - url: https://mirrors.aliyun.com/repo/epel-7.repo
+      dest: /etc/yum.repos.d/epel.repo
+
+- name: Stop NetworkManager
+  service:
+    name: NetworkManager
+    state: stopped
+    enabled: no
+
+- name: Stop postfix
+  service:
+    name: postfix
+    state: stopped
+    enabled: no
+
+- yum:
+    name:
+      - net-tools
+      - vim
+      - tree
+      - htop
+      - iotop
+      - iftop
+      - screen
+      - lsof
+      - iotop
+      - lrzsz 
+      - wget
+      - unzip
+      - telnet
+      - nmap
+      - nc
+      - tcpdump
+      - psmisc
+      - dos2unix
+      - bash-completion
+      - sysstat
+      - rsync
+      - nfs-utils
+      - ntp
+    state: latest
+
+- name: Ensure the 'nofile' limit is set to 65535 for all users
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: '* - nofile 65535'
+    create: yes
+  become: yes
+
+- cron:
+    name: rsync date
+    hour: "*/1"
+    user: root
+    job: "/usr/sbin/ntpdate 172.16.1.61"
+
+- file:
+    path: /server/scripts/
+    state: directory
+    mode: 0755
+
+- copy:
+    src: client_rsync_backup.sh
+    dest: /server/scripts/client_rsync_backup.sh
+
+- cron:
+    name: Rsync to Backup
+    minute: "00"
+    hour: "01"
+    user: root
+    job: "/usr/bin/bash /server/scripts/client_rsync_backup.sh >/dev/null 2>&1"
+
+
+

@@ -1,0 +1,14 @@
+- yum:
+    name: ntp
+    state: present
+
+- systemd:
+    name: ntpd
+    state: started
+    enabled: yes
+
+- cron:
+    name: ntpdate ntp1.aliyun.com
+    hour: "*/1"
+    user: root
+    job: "/usr/sbin/ntpdate ntp1.aliyun.com"

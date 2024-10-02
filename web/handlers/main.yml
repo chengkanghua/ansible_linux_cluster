@@ -1,0 +1,2 @@
+- name: restart Tomcat
+  command: '/code/tomcat/bin/shutdown.sh && /code/tomcat/bin/startup.sh'

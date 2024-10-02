@@ -1,0 +1,72 @@
+- hostname:
+   name: backup
+   use: systemd
+- name: Install Rsync Server
+  yum: name=rsync state=present
+- name: Create www Group
+  group:
+    name: www
+    gid: 666
+- name: Greate www User
+  user:
+    name: www
+    group: www
+    uid: 666
+    create_home: false
+    shell: /sbin/nologin
+- file:
+    path: /backup
+    state: directory
+    owner: www
+    group: www
+    mode: 0755
+- file:
+    path: /data
+    state: directory
+    owner: www
+    group: www
+    mode: 0755
+
+- name: Configure Rsync Server
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - {src: "rsyncd.conf", dest: "/etc/rsyncd.conf", mode: "0644"}
+    - {src: "rsync.password", dest: "/etc/rsync.password", mode: "0600"}
+  notify: Restart Rsync Server
+- name: Start Rsync Server
+  systemd:
+    name: rsyncd
+    state: started
+    enabled: yes
+
+- yum:
+    name: mailx 
+    state: present
+
+- copy:
+    src: mail.rc
+    dest: /etc/mail.rc
+    mode: 0644
+
+
+- file:
+    path: /server/scripts/
+    state: directory
+    mode: 0755
+
+- copy:
+    src: check_backup.sh
+    dest: /server/scripts/check_backup.sh
+    mode: 0644
+
+- cron:
+    name: Check Backup
+    minute: "00"
+    hour: "05"
+    user: root
+    job: "/usr/bin/bash /server/scripts/check_backup.sh >/dev/null 2>&1"
+
+

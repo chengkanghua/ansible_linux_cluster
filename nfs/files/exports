@@ -1,0 +1,3 @@
+/data/blog 172.16.1.0/24(rw,sync,all_squash,anonuid=666,anongid=666)
+/data/zh   172.16.1.0/24(rw,sync,all_squash,anonuid=666,anongid=666)
+/data/jpress 172.16.1.0/24(rw,sync,all_squash,anonuid=666,anongid=666)

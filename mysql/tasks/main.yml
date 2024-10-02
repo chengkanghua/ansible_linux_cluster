@@ -1,0 +1,40 @@
+
+- name: remove mariadb-libs
+  yum:
+    name: mariadb-libs
+    state: absent
+
+- name: 获取mysql rpm包
+  copy:
+    src: mysql57-community-release-el7-8.noarch.rpm
+    dest: /tmp/mysql57-community-release-el7-8.noarch.rpm
+
+- name: install mysql rpm for repo
+  yum:
+    name: /tmp/mysql57-community-release-el7-8.noarch.rpm
+    state: present
+
+# - name: import mysql GPG密钥
+#   command: 'rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 '
+
+- name: Import MySQL GPG key using rpm_key module
+  rpm_key:
+    state: present
+    key: https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+
+
+- name: install mysql-server
+  yum:
+    name: mysql-server
+    state: present
+
+- name: configure mysql
+  template:
+    src: my.j2
+    dest: /etc/my.cnf
+  notify: restart mysql-server    
+
+- name: start mysqld
+  systemd:
+    name: mysqld
+    state: started

@@ -1,0 +1,42 @@
+
+- name: copy nginx.repo
+  copy:
+    src: nginx.repo
+    dest: /etc/yum.repos.d/nginx.repo
+
+- name: install nginx
+  yum:
+    name: nginx
+    state: present
+
+- name: configure nginx
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { src: "blog_proxy.conf", dest: "/etc/nginx/conf.d/blog_proxy.conf"}
+    - { src: "jpress_proxy.conf", dest: "/etc/nginx/conf.d/jpress_proxy.conf"}
+    - { src: "proxy_params", dest: "/etc/nginx/proxy_params"}
+  notify: Reload Nginx
+
+- systemd:
+    name: nginx
+    state: started
+
+- name: install keepalived
+  yum:
+    name: keepalived
+    state: present
+
+- name: configure keepalived
+  template:
+    src: keepalived.j2
+    dest: /etc/keepalived/keepalived.conf
+  notify: Reload keepalived
+
+- systemd:
+    name: keepalived
+    state: started
+
+
+
