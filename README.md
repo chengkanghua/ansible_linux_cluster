@@ -4,7 +4,7 @@
 
 ​	   [基于Kubernetes的DevOps平台实践](./7基于Kubernetes的DevOps平台实践.md)
 
-​	   [集群架构 shell 实现](./集群架构 shell 实现.md)
+​	   [集群架构shell实现](./集群架构shell实现.md)
 
 集群部署 ansible playbook
 
